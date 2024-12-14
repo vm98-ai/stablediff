@@ -108,7 +108,59 @@ def generate(prompt : str, uncond_prompt : str, input_image = None, strength=0.8
             # now we use the time-steps to remove noise at particular time steps acc to scheduler
             timesteps = tqdm(sampler.timesteps)
             for i,timestep in enumerate(timesteps):
+                # ( 1, 320)
                 time_embedding = get_time_embedding(timestep).to(device)
+                # (batch_size, 4, latent_height, latent_width)
+                model_input = latents
+
+                if do_cfg:
+                    # (batch_size, 4, latent-height, latent_width) -> (4 * batch_size, 4, latent_h, latent_w)
+                    model_input = model_input.repeat(2,1,1,1)
+
+                # model_output is the predicted noise by the unet
+
+                model_output = diffusion(model_input,context,time_embedding)
+                if do_cfg:
+                    output_cond, output_uncond = model_output.chunk(2)
+                    model_output = cfg_scale * (output_cond - output_uncond) + output_uncond
+
+                # remove the noise predicted by unet
+                latents = sampler.step(timestep, latents, model_output)
+
+            to_idle(diffusion)
+            decoder = models["decoder"]
+            decoder.to(device)
+
+            images = decoder(latents)
+            to_idle(decoder)
+
+            images = rescale(images, (-1,1), (0,255), clamp=True)
+            # (batch_size, channel, height, width) ->  (batch_size, height, width, channel)
+
+            images = images.permute(0,2,3,1)
+            images = images.to("cpu", torch.uint8).numpy()
+            return images[0]
+
+def rescale(x,old_range, new_range, clamp=False):
+    old_min, old_max = old_range
+    new_min, new_max = new_range
+    x -= old_min
+    x *= (new_max-new_min) / (old_max-old_min)
+    x += new_min
+    if clamp:
+        x = x.clamp(new_min, new_max)
+    return x
+
+def get_time_embedding(timestep):
+    freqs = torch.pow(10000, -torch.arange(start=0, end=160, dtype=torch.float32) / 160)
+    # (1,160)
+    x = torch.tensor([timestep], dtype=torch.float32)[:,None] * freqs[None]
+    # (1,320)
+    return torch.cat([torch.cos(x), torch.sin(x)], dim=-1)
+
+                    
+
+
 
 
 
