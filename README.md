@@ -5,3 +5,6 @@
 ##### 1. https://github.com/hkproj/pytorch-stable-diffusion/tree/main
 ##### 2. https://github.com/kjsman/stable-diffusion-pytorch
 ##### 3. https://github.com/huggingface/diffusers/
+
+# Resources
+##### 1. DDPM Scheduler is deployed according to the paper https://arxiv.org/pdf/2006.11239
