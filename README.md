@@ -8,3 +8,9 @@
 
 # Resources
 ##### 1. DDPM Sampler is deployed according to the paper https://arxiv.org/pdf/2006.11239
+
+
+#### Run the following
+```bash
+s_d/stable-diffusion-text-to-image.ipynb
+```
